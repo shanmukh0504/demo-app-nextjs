@@ -3,23 +3,23 @@
 import React, { useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
-import WalletConnectComponent from "./components/wallet/WalletConnectComponent";
+import TokenSwap from "../components/swap/TokenSwap";
 
-const Home = () => {
+const Swap = () => {
   const { isConnected } = useAccount();
   const router = useRouter();
 
   useEffect(() => {
-    if (isConnected) {
-      router.push("/swap");
+    if (!isConnected) {
+      router.push("/");
     }
   }, [isConnected, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-600">
-      <WalletConnectComponent />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-600 space-y-4">
+      <TokenSwap />
     </div>
   );
 };
 
-export default Home;
+export default Swap;
