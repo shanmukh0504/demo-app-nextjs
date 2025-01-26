@@ -9,8 +9,7 @@ const nextConfig: NextConfig = {
     };
     config.resolve.alias = {
       ...config.resolve.alias,
-      "pino-pretty": false,
-      punycode: require.resolve("punycode"),
+      "tiny-secp256k1": require.resolve("@bitcoinerlab/secp256k1"),
     };
     return config;
   },

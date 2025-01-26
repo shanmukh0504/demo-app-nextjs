@@ -1,66 +1,82 @@
-import { useCallback, useState } from "react";
-import { useGarden } from "@gardenfi/react-hooks";
+import { useCallback, useState, useMemo } from "react";
+import { QuoteParams, useGarden } from "@gardenfi/react-hooks";
 import BigNumber from "bignumber.js";
 import debounce from "lodash.debounce";
+import { Asset, MatchedOrder } from "@gardenfi/orderbook";
+import { AsyncResult, Result } from "@catalogfi/utils";
+import { QuoteResponse, SwapParams } from "@gardenfi/core";
 
 export const useSwap = () => {
-  const { getQuote, swapAndInitiate } = useGarden();
+  const { getQuote } = useGarden();
   const [swapParams, setSwapParams] = useState({
-    inputToken: null,
-    outputToken: null,
-    inputAmount: 0.0,
-    outputAmount: 0.0,
+    fromAsset: null,
+    toAsset: null,
+    sendAmount: 0.0,
+    receiveAmount: 0.0,
   });
 
-  const fetchQuote = useCallback(
-    debounce(
-      async (
-        amount: string,
-        fromAsset: any,
-        toAsset: any,
-        isExactOut: boolean
-      ) => {
-        const amountInDecimals = new BigNumber(amount).multipliedBy(
-          10 ** fromAsset.decimals
-        );
-        if (!getQuote) return;
+  const debouncedFetchQuote = useMemo(
+    () =>
+      debounce(
+        async (
+          amount: string,
+          fromAsset: Asset,
+          toAsset: Asset,
+          isExactOut: boolean
+        ) => {
+          const amountInDecimals = new BigNumber(amount).multipliedBy(
+            10 ** fromAsset.decimals
+          );
+          if (!getQuote) return;
 
-        const quote = await getQuote({
-          fromAsset,
-          toAsset,
-          amount: amountInDecimals.toNumber(),
-          isExactOut,
-        });
+          const quote = await getQuote({
+            fromAsset,
+            toAsset,
+            amount: amountInDecimals.toNumber(),
+            isExactOut,
+          });
 
-        if (quote.error) {
+          if (quote.error) {
+            setSwapParams((prevParams) => ({
+              ...prevParams,
+              receiveAmount: 0,
+            }));
+            return;
+          }
+
+          const [ , quoteAmount ] = Object.entries(quote.val.quotes)[0];
+          const quoteAmountInDecimals = new BigNumber(quoteAmount).div(
+            10 ** toAsset.decimals
+          );
+
           setSwapParams((prevParams) => ({
             ...prevParams,
-            outputAmount: 0,
+            sendAmount: Number(amount),
+            receiveAmount: Number(
+              quoteAmountInDecimals.toFixed(8, BigNumber.ROUND_DOWN)
+            ),
           }));
-          return;
-        }
-
-        const [_strategy, quoteAmount] = Object.entries(quote.val.quotes)[0];
-        const quoteAmountInDecimals = new BigNumber(quoteAmount).div(
-          10 ** toAsset.decimals
-        );
-
-        setSwapParams((prevParams) => ({
-          ...prevParams,
-          inputAmount: Number(amount),
-          outputAmount: Number(
-            quoteAmountInDecimals.toFixed(8, BigNumber.ROUND_DOWN)
-          ),
-        }));
-      },
-      500
-    ),
+        },
+        500
+      ),
     [getQuote]
   );
 
+  const fetchQuote = useCallback(
+    async (
+      amount: string,
+      fromAsset: Asset,
+      toAsset: Asset,
+      isExactOut: boolean
+    ) => {
+      await debouncedFetchQuote(amount, fromAsset, toAsset, isExactOut);
+    },
+    [debouncedFetchQuote]
+  );
+
   const performSwap = async (
-    swapAndInitiate: Function | undefined,
-    swapParams: any,
+    swapAndInitiate: (params: SwapParams) => AsyncResult<MatchedOrder, string>,
+    swapParams: SwapParams,
     sendAmount: string,
     receiveAmount: string,
     btcAddress: string,
@@ -69,8 +85,8 @@ export const useSwap = () => {
     if (!swapAndInitiate) throw new Error("Swap service unavailable.");
 
     const res = await swapAndInitiate({
-      fromAsset: swapParams.inputToken,
-      toAsset: swapParams.outputToken,
+      fromAsset: swapParams.fromAsset,
+      toAsset: swapParams.toAsset,
       sendAmount,
       receiveAmount,
       additionalData: {
@@ -85,15 +101,15 @@ export const useSwap = () => {
   };
 
   const fetchSwapQuote = async (
-    getQuote: Function | undefined,
-    swapParams: any,
+    getQuote: (params: QuoteParams) => Promise<Result<QuoteResponse, string>>,
+    swapParams: SwapParams,
     sendAmount: number
   ): Promise<{ strategyId: string; receiveAmount: string }> => {
     if (!getQuote) throw new Error("Quote service unavailable.");
 
     const quote = await getQuote({
-      fromAsset: swapParams.inputToken,
-      toAsset: swapParams.outputToken,
+      fromAsset: swapParams.fromAsset,
+      toAsset: swapParams.toAsset,
       amount: sendAmount,
     });
 

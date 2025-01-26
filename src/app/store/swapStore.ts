@@ -1,13 +1,9 @@
 import { create } from "zustand";
 import { SupportedAssets } from "@gardenfi/orderbook";
+import { SwapParams } from "@gardenfi/core";
 
 interface SwapState {
-  swapParams: {
-    inputToken: any;
-    outputToken: any;
-    inputAmount: number;
-    outputAmount: number;
-  };
+  swapParams: SwapParams;
   inputAmount: string;
   btcAddress: string;
   errorMessage: string | null;
@@ -23,10 +19,11 @@ interface SwapState {
 
 export const useSwapStore = create<SwapState>((set) => ({
   swapParams: {
-    inputToken: SupportedAssets.testnet.ethereum_sepolia_WBTC,
-    outputToken: SupportedAssets.testnet.bitcoin_testnet_BTC,
-    inputAmount: 0,
-    outputAmount: 0,
+    fromAsset: SupportedAssets.testnet.ethereum_sepolia_WBTC,
+    toAsset: SupportedAssets.testnet.bitcoin_testnet_BTC,
+    sendAmount: "0",
+    receiveAmount: "0",
+    additionalData: { strategyId: ""},
   },
   inputAmount: "",
   btcAddress: "",
@@ -47,14 +44,15 @@ export const useSwapStore = create<SwapState>((set) => ({
       inputAmount: "",
       btcAddress: "",
       swapParams: {
-        inputToken: state.isBtcToWbtc
+        fromAsset: state.isBtcToWbtc
           ? SupportedAssets.testnet.ethereum_sepolia_WBTC
           : SupportedAssets.testnet.bitcoin_testnet_BTC,
-        outputToken: state.isBtcToWbtc
+          toAsset: state.isBtcToWbtc
           ? SupportedAssets.testnet.bitcoin_testnet_BTC
           : SupportedAssets.testnet.ethereum_sepolia_WBTC,
-        inputAmount: 0,
-        outputAmount: 0,
+          sendAmount: "0",
+          receiveAmount: "0",
+          additionalData: {strategyId: ""},
       },
     })),
 }));

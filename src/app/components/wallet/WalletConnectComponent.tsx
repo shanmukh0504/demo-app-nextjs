@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { useConnect } from "wagmi";
+import { Connector, useConnect } from "wagmi";
 
 const WalletConnectComponent: React.FC = () => {
   const { connect, connectors } = useConnect();
   const [isConnecting, setIsConnecting] = useState(false);
 
-  const handleConnect = async (connector: any) => {
+  const handleConnect = async (connector: Connector) => {
     console.log("Connecting with:", connector.name);
     setIsConnecting(true);
     try {

@@ -1,3 +1,5 @@
+"use client";
+
 import { GardenProvider } from "@gardenfi/react-hooks";
 import { Environment } from "@gardenfi/utils";
 import { useWalletClient } from "wagmi";

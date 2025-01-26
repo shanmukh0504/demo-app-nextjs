@@ -7,15 +7,3 @@ export type InputFieldProps = {
     onChange?: (value: string) => void;
     placeholder?: string;
 };
-
-export type QuoteResponse = {
-    error?: string;
-    ok: boolean;
-    val?: {
-        input_token_price: number;
-        output_token_price: number;
-        quotes: {
-            [strategy: string]: string;
-        };
-    };
-};

@@ -1,4 +1,6 @@
-import React, { useCallback, useState } from "react";
+"use client";
+
+import React, { useState } from "react";
 import { useDisconnect, useAccount } from "wagmi";
 import { useGarden } from "@gardenfi/react-hooks";
 import InputField from "./InputField";
@@ -35,6 +37,11 @@ const TokenSwap: React.FC = () => {
   const { address: evmAddress } = useAccount();
 
   const handleInputChangeWrapper = async (value: string) => {
+    if (!getQuote) {
+      console.error("getQuote is undefined.");
+      return;
+    }
+  
     await handleInputChange(
       value,
       getQuote,
@@ -44,25 +51,35 @@ const TokenSwap: React.FC = () => {
       setSwapParams
     );
   };
-
+  
   const handleSwap = async () => {
+    if (!getQuote) {
+      console.error("getQuote is undefined.");
+      return;
+    }
+    
+    if (!swapAndInitiate) {
+      console.error("swapAndInitiate is undefined.");
+      return;
+    }
+  
     const sendAmount =
-      swapParams.inputAmount * 10 ** swapParams.inputToken.decimals;
-
-    if (!evmAddress || !btcAddress || swapParams.inputAmount <= 0) {
+      Number(swapParams.sendAmount) * 10 ** swapParams.fromAsset.decimals;
+  
+    if (!evmAddress || !btcAddress || Number(swapParams.sendAmount) <= 0) {
       alert("Please fill in all fields correctly.");
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
       const { strategyId, receiveAmount } = await fetchSwapQuote(
         getQuote,
         swapParams,
         sendAmount
       );
-
+  
       const swapResult = await performSwap(
         swapAndInitiate,
         swapParams,
@@ -71,7 +88,7 @@ const TokenSwap: React.FC = () => {
         btcAddress,
         strategyId
       );
-
+  
       alert("Order Created successfully!");
       setOrderDetails(swapResult.val);
     } catch (error) {
@@ -80,7 +97,7 @@ const TokenSwap: React.FC = () => {
       setLoading(false);
     }
   };
-
+  
   return (
     <div className="p-8 min-w-[600px] bg-gray-800 rounded-2xl text-white">
       <div className="flex justify-between items-center mb-4">
@@ -116,7 +133,7 @@ const TokenSwap: React.FC = () => {
           id={isBtcToWbtc ? "wbtc" : "btc"}
           label={isBtcToWbtc ? "Receive WBTC" : "Receive BTC"}
           placeholder="0.0"
-          value={swapParams.outputAmount.toString()}
+          value={swapParams.receiveAmount.toString()}
           readOnly
         />
         <InputField
