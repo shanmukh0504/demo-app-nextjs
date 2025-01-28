@@ -9,6 +9,13 @@ const TokenSwap = dynamic(() => import("../components/swap/TokenSwap"), {
   ssr: false,
 });
 
+const Transactions = dynamic(
+  () => import("../components/transactions/Transactions"),
+  {
+    ssr: false,
+  }
+);
+
 const Swap = () => {
   const { isConnected } = useAccount();
   const router = useRouter();
@@ -20,8 +27,9 @@ const Swap = () => {
   }, [isConnected, router]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-600 space-y-4">
+    <div className="min-h-screen flex flex-col md:flex-row items-center justify-center bg-gray-600 gap-6 p-4">
       <TokenSwap />
+      <Transactions />
     </div>
   );
 };

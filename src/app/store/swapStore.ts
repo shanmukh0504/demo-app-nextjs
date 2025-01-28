@@ -17,7 +17,7 @@ interface SwapState {
   toggleSwapDirection: () => void;
 }
 
-export const useSwapStore = create<SwapState>((set) => ({
+export const swapStore = create<SwapState>((set) => ({
   swapParams: {
     fromAsset: SupportedAssets.testnet.ethereum_sepolia_WBTC,
     toAsset: SupportedAssets.testnet.bitcoin_testnet_BTC,

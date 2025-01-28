@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import GardenProviderWrapper from "./GardenProviderWrapper";
-import { wagmiConfig } from "./wagmiConfig";
+import { wagmiConfig } from "../utils/wagmiConfig";
 import React, { useEffect, useState } from "react";
 import { BTCWalletProvider } from "@gardenfi/wallet-connectors";
 import { Environment, Network } from "@gardenfi/utils";
