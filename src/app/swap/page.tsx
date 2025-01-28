@@ -3,7 +3,6 @@
 import React, { useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
-
 import TokenSwap from "../components/swap/TokenSwap";
 import Transactions from "../components/transactions/Transactions";
 
