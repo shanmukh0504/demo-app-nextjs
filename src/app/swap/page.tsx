@@ -3,18 +3,9 @@
 import React, { useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
 
-const TokenSwap = dynamic(() => import("../components/swap/TokenSwap"), {
-  ssr: false,
-});
-
-const Transactions = dynamic(
-  () => import("../components/transactions/Transactions"),
-  {
-    ssr: false,
-  }
-);
+import TokenSwap from "../components/swap/TokenSwap";
+import Transactions from "../components/transactions/Transactions";
 
 const Swap = () => {
   const { isConnected } = useAccount();
