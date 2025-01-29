@@ -2,19 +2,18 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useGarden } from "@gardenfi/react-hooks";
-import { ordersStore } from "@/app/store/ordersStore";
-import { blockNumberStore } from "@/app/store/blockNumberStore";
+import { ordersStore } from "@/store/ordersStore";
+import { blockNumberStore } from "@/store/blockNumberStore";
 import { MatchedOrder } from "@gardenfi/orderbook";
 import { ParseOrderStatus } from "@gardenfi/core";
 import { TransactionRow } from "./TransactionRow";
-import { assetInfoStore } from "@/app/store/assetInfoStore";
+import { assetInfoStore } from "@/store/assetInfoStore";
 
 const Transaction: React.FC = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const { orderBook } = useGarden();
-  const { orders, fetchAndSetOrders, totalItems, loadMore } =
-    ordersStore().ordersHistory;
+  const { orders, fetchAndSetOrders, totalItems, loadMore } = ordersStore().ordersHistory;
   const { fetchAndSetBlockNumbers, blockNumbers } = blockNumberStore();
   const { fetchAndSetAssetsAndChains } = assetInfoStore();
 
@@ -69,10 +68,9 @@ const Transaction: React.FC = () => {
   }, [orderBook, fetchAndSetOrders, fetchAndSetBlockNumbers]);
 
   return (
-    <div className="overflow-hidden p-8 min-w-[80vw] md:min-w-[350px] bg-gray-800 rounded-2xl text-white">
-      <div className="flex flex-col gap-5">
+    <div className="flex flex-col justify-center gap-5 overflow-hidden h-full min-h-[inherit] max-h-[75vh] p-8 bg-gray-800 rounded-2xl text-white">
         <h1 className="text-xl font-bold">Transaction History</h1>
-        <div className="flex flex-col overflow-y-auto scrollbar-hide bg-gray-700 rounded-2xl max-h-[39vh]">
+        <div className="flex flex-col overflow-y-auto h-full max-h-[inherit] scrollbar-hide bg-gray-700 rounded-2xl">
           {isLoadingOrders ? (
             <div className="p-6 text-center">Loading...</div>
           ) : orders.length === 0 ? (
@@ -106,7 +104,6 @@ const Transaction: React.FC = () => {
           </button>
         )}
       </div>
-    </div>
   );
 };
 

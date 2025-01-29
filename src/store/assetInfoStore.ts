@@ -1,13 +1,18 @@
 import { create } from "zustand";
-import { IOType } from "../constants/constants";
 import { Asset, Chain } from "@gardenfi/orderbook";
-import { API } from "../constants/api";
 import axios from "axios";
 import { IQuote, Strategies } from "@gardenfi/core";
+
+const ASSETS_API_URL = `${process.env.NEXT_PUBLIC_DATA_URL}/assets`;
 
 export const generateTokenKey = (chain: Chain, asset: string) => {
   return `${chain}_${asset.toLowerCase()}`;
 };
+
+export enum IOType {
+  input = "input",
+  output = "output",
+}
 
 export type Networks = {
   [chain in Chain]: ChainData & { assetConfig: Omit<Asset, "chain">[] };
@@ -79,9 +84,11 @@ export const assetInfoStore = create<AssetInfoState>((set, get) => ({
   fetchAndSetAssetsAndChains: async () => {
     try {
       set({ isLoading: true });
+
       const res = await axios.get<{
         data: { networks: Networks };
-      }>(API().data.assets);
+      }>(ASSETS_API_URL);
+
       const assetsData = res.data.data.networks;
 
       const assets: Assets = {};

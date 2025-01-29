@@ -23,7 +23,7 @@ export const swapStore = create<SwapState>((set) => ({
     toAsset: SupportedAssets.testnet.bitcoin_testnet_BTC,
     sendAmount: "0",
     receiveAmount: "0",
-    additionalData: { strategyId: ""},
+    additionalData: { strategyId: "" },
   },
   inputAmount: "",
   btcAddress: "",
@@ -47,12 +47,12 @@ export const swapStore = create<SwapState>((set) => ({
         fromAsset: state.isBtcToWbtc
           ? SupportedAssets.testnet.ethereum_sepolia_WBTC
           : SupportedAssets.testnet.bitcoin_testnet_BTC,
-          toAsset: state.isBtcToWbtc
+        toAsset: state.isBtcToWbtc
           ? SupportedAssets.testnet.bitcoin_testnet_BTC
           : SupportedAssets.testnet.ethereum_sepolia_WBTC,
-          sendAmount: "0",
-          receiveAmount: "0",
-          additionalData: {strategyId: ""},
+        sendAmount: "0",
+        receiveAmount: "0",
+        additionalData: { strategyId: "" },
       },
     })),
 }));
