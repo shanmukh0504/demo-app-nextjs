@@ -38,6 +38,9 @@ const TokenSwap: React.FC = () => {
     return `${address.slice(0, start)}...${address.slice(-end)}`;
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const W3MButton = "w3m-button" as any;
+
   // Input validation to ensure valid swap amounts
   const validateInput = (value: string): string | null => {
     const numericValue = parseFloat(value);
@@ -201,7 +204,7 @@ const TokenSwap: React.FC = () => {
               </div>
             </>
           ) : (
-            <w3m-button />
+            <W3MButton />
           )}
         </div>
       </div>
