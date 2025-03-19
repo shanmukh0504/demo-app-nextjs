@@ -1,8 +1,9 @@
+import Image from "next/image";
 import { FC, HTMLAttributes } from "react";
 
 type AssetChainLogosProps = HTMLAttributes<HTMLDivElement> & {
-  tokenLogo?: string;
-  chainLogo?: string;
+  tokenLogo: string;
+  chainLogo: string;
 };
 
 export const AssetChainLogos: FC<AssetChainLogosProps> = ({
@@ -17,16 +18,23 @@ export const AssetChainLogos: FC<AssetChainLogosProps> = ({
       }`}
       {...rest}
     >
-      <img
+      <Image
         src={tokenLogo}
-        className="absolute left-0 w-5 h-5 z-30 rounded-full"
+        alt="Token Logo"
+        width={20}
+        height={20}
+        className="absolute left-0 z-30 rounded-full"
       />
-      {chainLogo ? (
-        <img
+
+      {chainLogo && (
+        <Image
           src={chainLogo}
-          className="absolute right-0 w-5 h-5 z-20 rounded-full"
+          alt="Chain Logo"
+          width={20}
+          height={20}
+          className="absolute right-0 z-20 rounded-full"
         />
-      ) : null}
+      )}
     </div>
   );
 };

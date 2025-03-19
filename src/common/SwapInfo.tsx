@@ -32,8 +32,8 @@ export const SwapInfo: FC<SwapInfoProps> = ({
           {sendAmount}
         </p>
         <AssetChainLogos
-          tokenLogo={sendAsset.logo}
-          chainLogo={sendChain?.networkLogo}
+          tokenLogo={sendAsset.logo ?? ""}
+          chainLogo={sendChain?.networkLogo ?? ""}
         />
       </div>
       <ArrowRightIcon className="fill-white"/>
@@ -42,8 +42,8 @@ export const SwapInfo: FC<SwapInfoProps> = ({
           {receiveAmount}
         </p>
         <AssetChainLogos
-          tokenLogo={receiveAsset.logo}
-          chainLogo={receiveChain?.networkLogo}
+          tokenLogo={receiveAsset.logo ?? ""}
+          chainLogo={receiveChain?.networkLogo ?? ""}
         />
       </div>
     </div>
