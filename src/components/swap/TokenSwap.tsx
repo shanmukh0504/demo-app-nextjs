@@ -46,7 +46,7 @@ const TokenSwap: React.FC = () => {
     const numericValue = parseFloat(value);
     if (numericValue <= 0)
       return "Invalid amount. Please enter a number greater than 0.";
-    if (numericValue < 0.005) return "Amount must be at least 0.005.";
+    if (numericValue < 0.0005) return "Amount must be at least 0.0005.";
     return null;
   };
 
@@ -260,7 +260,7 @@ const TokenSwap: React.FC = () => {
               <span
                 onClick={() =>
                   window.open(
-                    `https://gardenexplorer.hashira.io/order/${orderDetails?.create_order.create_id}`,
+                    `https://testnet-explorer.garden.finance/order/${orderDetails?.create_order.create_id}`,
                     "_blank"
                   )
                 }

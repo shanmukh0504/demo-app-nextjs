@@ -92,7 +92,7 @@ export const TransactionRow: FC<TransactionProps> = ({
   const handleTransactionClick = () => {
     if (order?.create_order?.create_id) {
       window.open(
-        `https://gardenexplorer.hashira.io/order/${create_order.create_id}`,
+        `https://testnet-explorer.garden.finance/order/${create_order.create_id}`,
         "_blank"
       );
     }
