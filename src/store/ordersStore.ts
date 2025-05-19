@@ -15,8 +15,11 @@ type OrdersStore = {
     totalItems: number;
     error: string;
     perPage: number;
-    fetchAndSetOrders: (orderBook: IOrderbook) => Promise<void>;
-    loadMore: (orderBook: IOrderbook) => Promise<void>;
+    fetchAndSetOrders: (
+      orderBook: IOrderbook,
+      address: `0x${string}`
+    ) => Promise<void>;
+    loadMore: (orderBook: IOrderbook, address: `0x${string}`) => Promise<void>;
   };
 
   setPendingOrders: (orders: OrderWithStatus[]) => void;
@@ -52,12 +55,12 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
     totalItems: 0,
     error: "",
     perPage: 4,
-    fetchAndSetOrders: async (orderBook) => {
+    fetchAndSetOrders: async (orderBook, address) => {
       const state = get();
       const blockNumbers = blockNumberStore.getState().blockNumbers;
       if (!blockNumbers) return;
 
-      const res = await orderBook.fetchOrders(true, false, {
+      const res = await orderBook.getMatchedOrders(address, "all", {
         per_page: state.ordersHistory.perPage,
       });
       if (!res.ok) {
@@ -112,14 +115,14 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
         },
       });
     },
-    loadMore: async (orderBook) => {
+    loadMore: async (orderBook, address) => {
       set((prev) => ({
         ordersHistory: {
           ...prev.ordersHistory,
           perPage: prev.ordersHistory.perPage + 4,
         },
       }));
-      await get().ordersHistory.fetchAndSetOrders(orderBook);
+      await get().ordersHistory.fetchAndSetOrders(orderBook, address);
     },
   },
 

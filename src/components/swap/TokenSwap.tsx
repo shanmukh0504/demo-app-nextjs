@@ -260,7 +260,7 @@ const TokenSwap: React.FC = () => {
               <span
                 onClick={() =>
                   window.open(
-                    `https://gardenexplorer.hashira.io/order/${orderDetails?.create_order.create_id}`,
+                    `https://testnet-explorer.garden.finance/order/${orderDetails?.create_order.create_id}`,
                     "_blank"
                   )
                 }

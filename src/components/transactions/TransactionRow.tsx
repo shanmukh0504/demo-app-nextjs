@@ -92,7 +92,7 @@ export const TransactionRow: FC<TransactionProps> = ({
   const handleTransactionClick = () => {
     if (order?.create_order?.create_id) {
       window.open(
-        `https://gardenexplorer.hashira.io/order/${create_order.create_id}`,
+        `https://testnet-explorer.garden.finance/order/${create_order.create_id}`,
         "_blank"
       );
     }
@@ -102,7 +102,9 @@ export const TransactionRow: FC<TransactionProps> = ({
 
   return (
     <div
-      className={`flex flex-col gap-1 p-4 ${isFirst ? "rounded-t-2xl" : ""} ${isLast ? "rounded-b-2xl" : ""} ${"cursor-pointer hover:bg-gray-900" }`}
+      className={`flex flex-col gap-1 p-4 ${isFirst ? "rounded-t-2xl" : ""} ${
+        isLast ? "rounded-b-2xl" : ""
+      } ${"cursor-pointer hover:bg-gray-900"}`}
       onClick={handleTransactionClick}
     >
       <div className={`flex flex-col gap-1 `}>
@@ -113,12 +115,8 @@ export const TransactionRow: FC<TransactionProps> = ({
           receiveAmount={receiveAmount}
         />
         <div className="flex justify-between">
-          <p>
-            {statusLabel}
-          </p>
-          <p>
-            {dayDifference}
-          </p>
+          <p>{statusLabel}</p>
+          <p>{dayDifference}</p>
         </div>
       </div>
     </div>
