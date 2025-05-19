@@ -26,7 +26,7 @@ const Transaction: React.FC = () => {
   );
 
   const handleLoadMore = async () => {
-    if (!orderBook) return;
+    if (!orderBook || !evmAddress) return;
     setIsLoadingMore(true);
     await loadMore(orderBook, with0x(evmAddress || ""));
     setIsLoadingMore(false);
@@ -52,7 +52,7 @@ const Transaction: React.FC = () => {
     let isFetching = false;
 
     const fetchOrdersAndBlockNumbers = async () => {
-      if (isFetching) return;
+      if (isFetching || !evmAddress) return;
 
       try {
         isFetching = true;
@@ -68,7 +68,7 @@ const Transaction: React.FC = () => {
     const intervalId = setInterval(fetchOrdersAndBlockNumbers, 10000);
 
     return () => clearInterval(intervalId);
-  }, [orderBook, fetchAndSetOrders, fetchAndSetBlockNumbers]);
+  }, [orderBook, fetchAndSetOrders, fetchAndSetBlockNumbers, evmAddress]);
 
   return (
     <div className="flex flex-col justify-center gap-5 overflow-hidden h-full min-h-[inherit] max-h-[75vh] p-8 bg-gray-800 rounded-2xl text-white">

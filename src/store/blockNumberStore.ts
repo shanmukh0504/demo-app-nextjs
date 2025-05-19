@@ -20,7 +20,7 @@ export const blockNumberStore = create<BlockNumberStore>()((set, get) => ({
   fetchAndSetBlockNumbers: async () => {
     try {
       set({ isLoading: true });
-      const url = `${BASE_URL}/blocknumber/${network}`;
+      const url = `${BASE_URL}/blocknumbers/${network}`;
       const res = await axios.get<Record<Chain, number>>(url);
       set({ blockNumbers: res.data, error: "" });
     } catch (error) {
