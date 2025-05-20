@@ -85,11 +85,9 @@ export const assetInfoStore = create<AssetInfoState>((set, get) => ({
     try {
       set({ isLoading: true });
 
-      const res = await axios.get<{
-        data: { networks: Networks };
-      }>(ASSETS_API_URL);
+      const res = await axios.get<Networks>(ASSETS_API_URL);
 
-      const assetsData = res.data.data.networks;
+      const assetsData = res.data;
 
       const assets: Assets = {};
       const chains: Chains = {};

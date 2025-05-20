@@ -30,7 +30,6 @@ type OrdersStore = {
 const filterPendingOrders = (orders: OrderWithStatus[]) =>
   orders.filter((order) => order.status !== OrderStatus.RedeemDetected);
 
-// Helper to merge orders into store sections
 const mergeOrders = (
   orders: OrderWithStatus[],
   existingOrders: OrderWithStatus[]
@@ -47,7 +46,6 @@ const updateSingleOrder = (
   );
 
 export const ordersStore = create<OrdersStore>((set, get) => ({
-  // Store state initialization
   pendingOrders: [],
   orderInProgress: null,
   ordersHistory: {
@@ -91,20 +89,19 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
         })
         .filter(Boolean) as OrderWithStatus[];
 
-      // Merge into respective states
       set({
         pendingOrders: mergeOrders(state.pendingOrders, ordersWithStatus),
         orderInProgress: state.orderInProgress
           ? (() => {
-              const foundOrder = ordersWithStatus.find(
-                (o) =>
-                  o.create_order.create_id ===
-                  state.orderInProgress?.create_order.create_id
-              );
-              return foundOrder
-                ? getLatestUpdatedOrder(foundOrder, state.orderInProgress)
-                : state.orderInProgress;
-            })()
+            const foundOrder = ordersWithStatus.find(
+              (o) =>
+                o.create_order.create_id ===
+                state.orderInProgress?.create_order.create_id
+            );
+            return foundOrder
+              ? getLatestUpdatedOrder(foundOrder, state.orderInProgress)
+              : state.orderInProgress;
+          })()
           : state.orderInProgress,
         ordersHistory: {
           ...state.ordersHistory,
@@ -126,7 +123,6 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
     },
   },
 
-  // State updates for pendingOrders
   setPendingOrders: (orders) => {
     const state = get();
     set({
@@ -135,15 +131,15 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
       ),
       orderInProgress: state.orderInProgress
         ? (() => {
-            const foundOrder = orders.find(
-              (o) =>
-                o.create_order.create_id ===
-                state.orderInProgress?.create_order.create_id
-            );
-            return foundOrder
-              ? getLatestUpdatedOrder(foundOrder, state.orderInProgress)
-              : state.orderInProgress;
-          })()
+          const foundOrder = orders.find(
+            (o) =>
+              o.create_order.create_id ===
+              state.orderInProgress?.create_order.create_id
+          );
+          return foundOrder
+            ? getLatestUpdatedOrder(foundOrder, state.orderInProgress)
+            : state.orderInProgress;
+        })()
         : state.orderInProgress,
       ordersHistory: {
         ...state.ordersHistory,
@@ -152,7 +148,6 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
     });
   },
 
-  // State updates for orderInProgress
   setOrderInProgress: (order) => {
     if (!order) {
       set({
@@ -167,7 +162,7 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
       ),
       orderInProgress:
         state.orderInProgress &&
-        order.create_order.create_id ===
+          order.create_order.create_id ===
           state.orderInProgress.create_order.create_id
           ? getLatestUpdatedOrder(order, state.orderInProgress)
           : order,
@@ -178,7 +173,6 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
     });
   },
 
-  // State updates for specific order
   updateOrder: (order) => {
     const state = get();
     set({

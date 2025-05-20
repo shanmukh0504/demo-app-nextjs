@@ -8,17 +8,17 @@ import { MatchedOrder } from "@gardenfi/orderbook";
 import { ParseOrderStatus } from "@gardenfi/core";
 import { TransactionRow } from "./TransactionRow";
 import { assetInfoStore } from "@/store/assetInfoStore";
+import { with0x } from "@gardenfi/utils";
 import { useAccount } from "wagmi";
 
 const Transaction: React.FC = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const { orderBook } = useGarden();
-  const { orders, fetchAndSetOrders, totalItems, loadMore } =
-    ordersStore().ordersHistory;
+  const { address: evmAddress } = useAccount();
+  const { orders, fetchAndSetOrders, totalItems, loadMore } = ordersStore().ordersHistory;
   const { fetchAndSetBlockNumbers, blockNumbers } = blockNumberStore();
   const { fetchAndSetAssetsAndChains } = assetInfoStore();
-  const { address: evmAddress } = useAccount();
 
   const showLoadMore = useMemo(
     () => orders.length < totalItems,
@@ -28,7 +28,7 @@ const Transaction: React.FC = () => {
   const handleLoadMore = async () => {
     if (!orderBook || !evmAddress) return;
     setIsLoadingMore(true);
-    await loadMore(orderBook, evmAddress);
+    await loadMore(orderBook, with0x(evmAddress || ""));
     setIsLoadingMore(false);
   };
 
@@ -57,7 +57,7 @@ const Transaction: React.FC = () => {
       try {
         isFetching = true;
         await fetchAndSetBlockNumbers();
-        await fetchAndSetOrders(orderBook, evmAddress);
+        await fetchAndSetOrders(orderBook, with0x(evmAddress || ""));
       } finally {
         isFetching = false;
       }
@@ -97,11 +97,10 @@ const Transaction: React.FC = () => {
       {showLoadMore && (
         <button
           onClick={handleLoadMore}
-          className={`w-full p-2 cursor-pointer text-white rounded-lg ${
-            isLoadingMore
+          className={`w-full p-2 cursor-pointer text-white rounded-lg ${isLoadingMore
               ? "bg-gray-700 cursor-not-allowed"
               : "bg-gray-900 hover:bg-gray-700"
-          }`}
+            }`}
         >
           {isLoadingMore ? "Loading..." : "Load More"}
         </button>
