@@ -1,5 +1,5 @@
 import { OrderStatus, OrderWithStatus, ParseOrderStatus } from "@gardenfi/core";
-import { IOrderbook } from "@gardenfi/orderbook";
+import { BlockchainType, IOrderbook } from "@gardenfi/orderbook";
 import { create } from "zustand";
 import {
   getLatestUpdatedOrder,
@@ -17,9 +17,13 @@ type OrdersStore = {
     perPage: number;
     fetchAndSetOrders: (
       orderBook: IOrderbook,
-      address: `0x${string}`
+      connectedWallets: {
+        [key in BlockchainType]: string;
+      }
     ) => Promise<void>;
-    loadMore: (orderBook: IOrderbook, address: `0x${string}`) => Promise<void>;
+    loadMore: (orderBook: IOrderbook, connectedWallets: {
+      [key in BlockchainType]: string;
+    }) => Promise<void>;
   };
 
   setPendingOrders: (orders: OrderWithStatus[]) => void;
@@ -52,48 +56,63 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
     orders: [],
     totalItems: 0,
     error: "",
-    perPage: 4,
-    fetchAndSetOrders: async (orderBook, address) => {
+    perPage: 2,
+    isLoading: false,
+    fetchAndSetOrders: async (orderBook, connectedWallets: {
+      [key in BlockchainType]: string;
+    }) => {
       const state = get();
       const blockNumbers = blockNumberStore.getState().blockNumbers;
       if (!blockNumbers) return;
 
-      const res = await orderBook.getMatchedOrders(address, "all", {
-        per_page: state.ordersHistory.perPage,
-      });
-      if (!res.ok) {
-        set((prev) => ({
-          ordersHistory: {
-            ...prev.ordersHistory,
-            error: res.error || "Error fetching orders",
-          },
-        }));
-        return;
+      set(prev => ({ ordersHistory: { ...prev.ordersHistory, isLoading: true } }));
+
+      let allOrders: OrderWithStatus[] = [];
+      let totalItems = 0;
+
+      for (const [, address] of Object.entries(connectedWallets)) {
+        if (address === "") continue;
+        const res = await orderBook.getMatchedOrders(address, "all", {
+          per_page: state.ordersHistory.perPage,
+        });
+
+        if (!res.ok) {
+          continue;
+        }
+
+        totalItems += res.val.total_items;
+
+        const ordersWithStatus = res.val.data
+          .map((order) => {
+            const { source_swap, destination_swap } = order;
+            const sourceBlockNumber = blockNumbers[source_swap.chain];
+            const destinationBlockNumber = blockNumbers[destination_swap.chain];
+            if (!sourceBlockNumber || !destinationBlockNumber) return;
+
+            return {
+              ...order,
+              status: ParseOrderStatus(
+                order,
+                sourceBlockNumber,
+                destinationBlockNumber
+              ),
+            };
+          })
+          .filter(Boolean) as OrderWithStatus[];
+
+        allOrders.push(...ordersWithStatus);
       }
 
-      const ordersWithStatus = res.val.data
-        .map((order) => {
-          const { source_swap, destination_swap } = order;
-          const sourceBlockNumber = blockNumbers[source_swap.chain];
-          const destinationBlockNumber = blockNumbers[destination_swap.chain];
-          if (!sourceBlockNumber || !destinationBlockNumber) return;
+      allOrders.sort((a, b) =>
+        new Date(b.create_order.created_at).getTime() -
+        new Date(a.create_order.created_at).getTime()
+      );
 
-          return {
-            ...order,
-            status: ParseOrderStatus(
-              order,
-              sourceBlockNumber,
-              destinationBlockNumber
-            ),
-          };
-        })
-        .filter(Boolean) as OrderWithStatus[];
-
-      set({
-        pendingOrders: mergeOrders(state.pendingOrders, ordersWithStatus),
+      set(state => ({
+        pendingOrders: mergeOrders(state.pendingOrders, allOrders),
         orderInProgress: state.orderInProgress
           ? (() => {
-            const foundOrder = ordersWithStatus.find(
+            const foundOrder = allOrders.find(
               (o) =>
                 o.create_order.create_id ===
                 state.orderInProgress?.create_order.create_id
@@ -105,21 +124,21 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
           : state.orderInProgress,
         ordersHistory: {
           ...state.ordersHistory,
-          orders: mergeOrders(ordersWithStatus, state.ordersHistory.orders),
-          totalItems: res.val.total_items,
+          orders: mergeOrders(allOrders, state.ordersHistory.orders),
+          totalItems,
           error: "",
-          perPage: res.val.per_page,
+          isLoading: false,
         },
-      });
+      }));
     },
-    loadMore: async (orderBook, address) => {
+    loadMore: async (orderBook, connectedWallets) => {
       set((prev) => ({
         ordersHistory: {
           ...prev.ordersHistory,
-          perPage: prev.ordersHistory.perPage + 4,
+          perPage: prev.ordersHistory.perPage + 2,
         },
       }));
-      await get().ordersHistory.fetchAndSetOrders(orderBook, address);
+      await get().ordersHistory.fetchAndSetOrders(orderBook, connectedWallets);
     },
   },
 
@@ -181,7 +200,7 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
       ),
       orderInProgress:
         state.orderInProgress &&
-        order.create_order.create_id ===
+          order.create_order.create_id ===
           state.orderInProgress.create_order.create_id
           ? getLatestUpdatedOrder(order, state.orderInProgress)
           : state.orderInProgress,
