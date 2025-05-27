@@ -90,7 +90,7 @@ const Transaction: React.FC = () => {
     const intervalId = setInterval(fetchOrdersAndBlockNumbers, 10000);
 
     return () => clearInterval(intervalId);
-  }, [orderBook, fetchAndSetOrders, fetchAndSetBlockNumbers, evmAddress]);
+  }, [orderBook, garden, fetchAndSetOrders, fetchAndSetBlockNumbers, evmAddress]);
 
   return (
     <div className="flex flex-col justify-center gap-5 overflow-hidden h-full min-h-[inherit] max-h-[75vh] p-8 bg-gray-800 rounded-2xl text-white">

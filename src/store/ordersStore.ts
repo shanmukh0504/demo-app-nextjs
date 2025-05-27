@@ -67,7 +67,7 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
 
       set(prev => ({ ordersHistory: { ...prev.ordersHistory, isLoading: true } }));
 
-      let allOrders: OrderWithStatus[] = [];
+      const allOrders: OrderWithStatus[] = [];
       let totalItems = 0;
 
       for (const [, address] of Object.entries(connectedWallets)) {
