@@ -24,6 +24,15 @@ type OrdersStore = {
     loadMore: (orderBook: IOrderbook, connectedWallets: {
       [key in BlockchainType]: string;
     }) => Promise<void>;
+    fetchAndSetOrders: (
+      orderBook: IOrderbook,
+      connectedWallets: {
+        [key in BlockchainType]: string;
+      }
+    ) => Promise<void>;
+    loadMore: (orderBook: IOrderbook, connectedWallets: {
+      [key in BlockchainType]: string;
+    }) => Promise<void>;
   };
 
   setPendingOrders: (orders: OrderWithStatus[]) => void;
@@ -97,16 +106,16 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
           const destinationBlockNumber = blockNumbers[destination_swap.chain];
           if (!sourceBlockNumber || !destinationBlockNumber) return;
 
-          return {
-            ...order,
-            status: ParseOrderStatus(
-              order,
-              sourceBlockNumber,
-              destinationBlockNumber
-            ),
-          };
-        })
-        .filter(Boolean) as OrderWithStatus[];
+            return {
+              ...order,
+              status: ParseOrderStatus(
+                order,
+                sourceBlockNumber,
+                destinationBlockNumber
+              ),
+            };
+          })
+          .filter(Boolean) as OrderWithStatus[];
 
       set({
         pendingOrders: mergeOrders(state.pendingOrders, ordersWithStatus),
@@ -117,13 +126,13 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
           error: "",
           perPage: 4,
         },
-      });
+      }));
     },
     loadMore: async (orderBook, address) => {
       set((prev) => ({
         ordersHistory: {
           ...prev.ordersHistory,
-          perPage: prev.ordersHistory.perPage + 4,
+          perPage: prev.ordersHistory.perPage + 2,
         },
       }));
       await get().ordersHistory.fetchAndSetOrders(orderBook, address);
@@ -138,6 +147,15 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
       ),
       orderInProgress: state.orderInProgress
         ? (() => {
+          const foundOrder = orders.find(
+            (o) =>
+              o.create_order.create_id ===
+              state.orderInProgress?.create_order.create_id
+          );
+          return foundOrder
+            ? getLatestUpdatedOrder(foundOrder, state.orderInProgress)
+            : state.orderInProgress;
+        })()
           const foundOrder = orders.find(
             (o) =>
               o.create_order.create_id ===
@@ -170,6 +188,7 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
       orderInProgress:
         state.orderInProgress &&
           order.create_order.create_id ===
+          order.create_order.create_id ===
           state.orderInProgress.create_order.create_id
           ? getLatestUpdatedOrder(order, state.orderInProgress)
           : order,
@@ -188,6 +207,7 @@ export const ordersStore = create<OrdersStore>((set, get) => ({
       ),
       orderInProgress:
         state.orderInProgress &&
+          order.create_order.create_id ===
           order.create_order.create_id ===
           state.orderInProgress.create_order.create_id
           ? getLatestUpdatedOrder(order, state.orderInProgress)

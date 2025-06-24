@@ -6,7 +6,7 @@ import { useWalletClient } from "wagmi";
 
 function GardenProviderWrapper({ children }: { children: React.ReactNode }) {
   const { data: walletClient } = useWalletClient();
-  
+
   return (
     <GardenProvider
       config={{
