@@ -11,7 +11,8 @@ import { MatchedOrder } from "@gardenfi/orderbook";
 
 const TokenSwap: React.FC = () => {
   const [orderDetails, setOrderDetails] = useState<MatchedOrder>();
-
+  const [tooltip, setTooltip] = useState("Copy");
+  const [showTooltip, setShowTooltip] = useState(false);
   // Accessing global swap state using Zustand store
   const {
     swapParams,
@@ -33,6 +34,20 @@ const TokenSwap: React.FC = () => {
   const { isConnected, address: evmAddress } = useAccount();
   const { getQuote, swapAndInitiate } = useGarden();
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(orderDetails?.source_swap.swap_id || "");
+    setTooltip("Copied!");
+  };
+
+  const handleMouseEnter = () => {
+    setShowTooltip(true);
+    setTooltip("Copy");
+  };
+
+  const handleMouseLeave = () => {
+    setShowTooltip(false);
+    setTooltip("Copy");
+  };
   const getTrimmedVal = (address: string | undefined, start = 6, end = 4) => {
     if (!address) return "....";
     return `${address.slice(0, start)}...${address.slice(-end)}`;
@@ -46,7 +61,7 @@ const TokenSwap: React.FC = () => {
     const numericValue = parseFloat(value);
     if (numericValue <= 0)
       return "Invalid amount. Please enter a number greater than 0.";
-    if (numericValue < 0.005) return "Amount must be at least 0.005.";
+    if (numericValue < 0.0005) return "Amount must be at least 0.0005.";
     return null;
   };
 
@@ -244,14 +259,17 @@ const TokenSwap: React.FC = () => {
               <div className="flex justify-between items-center">
                 Deposit Address:{" "}
                 <span
-                  className="text-blue-400 underline hover:text-blue-300 cursor-pointer"
-                  onClick={() =>
-                    navigator.clipboard.writeText(
-                      orderDetails?.source_swap.swap_id || ""
-                    )
-                  }
+                  className="relative text-blue-400 underline hover:text-blue-300 cursor-pointer"
+                  onClick={handleCopy}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
                 >
                   {getTrimmedVal(orderDetails?.source_swap.swap_id)}
+                  {showTooltip && (
+                    <span className="absolute left-1/2 -translate-x-1/2 -top-7 bg-gray-800 text-white text-sm rounded px-2 py-1 opacity-90 pointer-events-none z-10">
+                      {tooltip}
+                    </span>
+                  )}
                 </span>
               </div>
             )}
@@ -274,11 +292,10 @@ const TokenSwap: React.FC = () => {
 
         <button
           onClick={handleSwap}
-          className={`w-full p-2 cursor-pointer text-white rounded-xl ${
-            loading
-              ? "bg-gray-700 cursor-not-allowed"
-              : "bg-gray-900 hover:bg-gray-700"
-          }`}
+          className={`w-full p-2 cursor-pointer text-white rounded-xl ${loading
+            ? "bg-gray-700 cursor-not-allowed"
+            : "bg-gray-900 hover:bg-gray-700"
+            }`}
           disabled={loading}
         >
           {loading ? "Processing..." : "Swap"}

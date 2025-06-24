@@ -4,17 +4,24 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useGarden } from "@gardenfi/react-hooks";
 import { ordersStore } from "@/store/ordersStore";
 import { blockNumberStore } from "@/store/blockNumberStore";
-import { MatchedOrder } from "@gardenfi/orderbook";
+import { MatchedOrder, BlockchainType } from "@gardenfi/orderbook";
 import { ParseOrderStatus } from "@gardenfi/core";
 import { TransactionRow } from "./TransactionRow";
 import { assetInfoStore } from "@/store/assetInfoStore";
-import { with0x } from "@gardenfi/utils";
 import { useAccount } from "wagmi";
 
 const Transaction: React.FC = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
-  const { orderBook } = useGarden();
+  const [connectedWallets, setConnectedWallets] = useState<
+    Record<BlockchainType, string>
+  >({
+    Bitcoin: "",
+    EVM: "",
+    Starknet: "",
+  });
+
+  const { garden, orderBook } = useGarden();
   const { address: evmAddress } = useAccount();
   const { orders, fetchAndSetOrders, totalItems, loadMore } = ordersStore().ordersHistory;
   const { fetchAndSetBlockNumbers, blockNumbers } = blockNumberStore();
@@ -28,10 +35,12 @@ const Transaction: React.FC = () => {
   const handleLoadMore = async () => {
     if (!orderBook) return;
     setIsLoadingMore(true);
-    await loadMore(orderBook, with0x(evmAddress || ""));
+    await loadMore(orderBook, connectedWallets);
     setIsLoadingMore(false);
   };
 
+  const toXOnly = (pubKey: string) =>
+    pubKey.length === 64 ? pubKey : pubKey.slice(2);
   const parseStatus = (order: MatchedOrder) => {
     if (!blockNumbers) return;
     const { source_swap, destination_swap } = order;
@@ -57,7 +66,16 @@ const Transaction: React.FC = () => {
       try {
         isFetching = true;
         await fetchAndSetBlockNumbers();
-        await fetchAndSetOrders(orderBook, with0x(evmAddress || ""));
+        garden.btcWallet?.getPublicKey().then((publicKey) => {
+        setConnectedWallets({
+          Bitcoin: toXOnly(publicKey),
+          EVM: evmAddress ?? "",
+        });
+        fetchAndSetOrders(orderBook, {
+          Bitcoin: toXOnly(publicKey),
+          EVM: evmAddress ?? ""
+        });
+      });
       } finally {
         isFetching = false;
       }
@@ -98,8 +116,8 @@ const Transaction: React.FC = () => {
         <button
           onClick={handleLoadMore}
           className={`w-full p-2 cursor-pointer text-white rounded-lg ${isLoadingMore
-              ? "bg-gray-700 cursor-not-allowed"
-              : "bg-gray-900 hover:bg-gray-700"
+            ? "bg-gray-700 cursor-not-allowed"
+            : "bg-gray-900 hover:bg-gray-700"
             }`}
         >
           {isLoadingMore ? "Loading..." : "Load More"}

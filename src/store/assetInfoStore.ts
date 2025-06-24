@@ -34,10 +34,6 @@ type AssetInfoState = {
   assets: Assets | null;
   chains: Chains | null;
   isLoading: boolean;
-  isAssetSelectorOpen: {
-    isOpen: boolean;
-    type: IOType;
-  };
   error: string | null;
   strategies: {
     val: Strategies | null;
@@ -53,10 +49,6 @@ type AssetInfoState = {
 export const assetInfoStore = create<AssetInfoState>((set, get) => ({
   assets: null,
   chains: null,
-  isAssetSelectorOpen: {
-    isOpen: false,
-    type: IOType.input,
-  },
   isLoading: false,
   error: null,
   strategies: {
@@ -65,22 +57,6 @@ export const assetInfoStore = create<AssetInfoState>((set, get) => ({
     isLoading: false,
   },
 
-  setOpenAssetSelector: (type) =>
-    set({
-      isAssetSelectorOpen: {
-        isOpen: true,
-        type,
-      },
-    }),
-
-  CloseAssetSelector: () =>
-    set({
-      isAssetSelectorOpen: {
-        type: get().isAssetSelectorOpen.type,
-        isOpen: false,
-      },
-    }),
-
   fetchAndSetAssetsAndChains: async () => {
     try {
       set({ isLoading: true });
@@ -88,9 +64,7 @@ export const assetInfoStore = create<AssetInfoState>((set, get) => ({
       const res = await axios.get<{
         data: { networks: Networks };
       }>(ASSETS_API_URL);
-
-      const assetsData = res.data.data.networks;
-
+      const assetsData = res.data;
       const assets: Assets = {};
       const chains: Chains = {};
 
