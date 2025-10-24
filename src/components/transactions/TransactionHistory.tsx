@@ -1,0 +1,57 @@
+import React, { useEffect, useState } from 'react';
+import { useGarden } from '@gardenfi/react-hooks';
+import { BlockchainType } from '@gardenfi/orderbook';
+import transactionHistoryStore from '@/store/transactionHistoryStore';
+import Transactions from './Transactions';
+
+type TransactionHistoryProps = {
+  isOpen?: boolean;
+};
+
+const TransactionHistory: React.FC<TransactionHistoryProps> = ({
+  isOpen = true,
+}) => {
+  const [connectedWallets, setConnectedWallets] = useState<
+    Record<BlockchainType, string>
+  >({
+    bitcoin: '',
+    evm: '',
+    starknet: '',
+    solana: '',
+    sui: '',
+  });
+
+  const { garden } = useGarden();
+  const { fetchTransactions } = transactionHistoryStore();
+
+  useEffect(() => {
+    if (!garden || !isOpen) return;
+
+    const wallets: Record<BlockchainType, string> = {
+      bitcoin: garden?.htlcs?.bitcoin?.htlcActorAddress || '',
+      evm: garden?.htlcs.evm?.htlcActorAddress || '',
+      starknet: garden?.htlcs?.starknet?.htlcActorAddress || '',
+      solana: garden?.htlcs?.solana?.htlcActorAddress || '',
+      sui: garden?.htlcs?.sui?.htlcActorAddress || '',
+    };
+
+    setConnectedWallets(wallets);
+
+    // Fetch completed transactions
+    fetchTransactions(garden, wallets);
+  }, [garden, isOpen, fetchTransactions]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="flex flex-col h-full w-full gap-3">
+      <div className="scrollbar-hide flex flex-1 flex-col gap-5 overflow-y-auto items-center rounded-2xl pb-6 min-h-0">
+        <div className="flex flex-col rounded-2xl w-full bg-white/50">
+          <Transactions />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TransactionHistory;
