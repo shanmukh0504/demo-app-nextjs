@@ -1,50 +1,48 @@
-import { FC, useMemo } from "react";
-import { SwapInfo } from "../../common/SwapInfo";
-import { MatchedOrder } from "@gardenfi/orderbook";
+import React, { FC, useMemo } from 'react';
+import { Typography } from '@gardenfi/garden-book';
+import { SwapInfo } from '@/common/SwapInfo';
+import { Order, OrderStatus } from '@gardenfi/orderbook';
+import { assetInfoStore } from '@/store/assetInfoStore';
 import {
   formatAmount,
   getAssetFromSwap,
   getDayDifference,
-} from "../../utils/utils";
-import { OrderStatus } from "@gardenfi/core";
-import { assetInfoStore } from "../../store/assetInfoStore";
+} from '@/utils/utils';
+import { swapStore } from '@/store/swapStore';
+import { getApiEndpoint } from '@/constants/constants';
 
 type TransactionProps = {
-  order: MatchedOrder;
+  order: Order;
   status?: OrderStatus;
   isLast: boolean;
   isFirst: boolean;
 };
 
 enum StatusLabel {
-  Completed = "Completed",
-  Pending = "In progress...",
-  Expired = "Expired",
-  ShouldInitiate = "Awaiting deposit",
-  InitiateDetected = "Deposit detected (0/1)",
-  Initiated = "Deposit detected",
-  Redeeming = "Redeeming",
+  Completed = 'Completed',
+  Pending = 'In progress...',
+  Expired = 'Expired',
+  ShouldInitiate = 'Detecting deposit',
+  InitiateDetected = 'Deposit detected (0/1)',
+  Initiated = 'Deposit detected',
+  Redeeming = 'Redeeming',
 }
 
 const getOrderStatusLabel = (status: OrderStatus) => {
   switch (status) {
-    case OrderStatus.Matched:
+    case OrderStatus.Created:
       return StatusLabel.ShouldInitiate;
-    case OrderStatus.DeadLineExceeded:
+    case OrderStatus.Expired:
       return StatusLabel.Expired;
+    case OrderStatus.Initiated:
+      return StatusLabel.InitiateDetected;
     case OrderStatus.InitiateDetected:
       return StatusLabel.InitiateDetected;
-    case OrderStatus.Initiated:
-      return StatusLabel.Initiated;
-    case OrderStatus.CounterPartyInitiateDetected:
-    case OrderStatus.CounterPartyInitiated:
+    case OrderStatus.AwaitingRedeem:
       return StatusLabel.Redeeming;
-    case OrderStatus.Redeemed:
-    case OrderStatus.RedeemDetected:
     case OrderStatus.Refunded:
-    case OrderStatus.RefundDetected:
-    case OrderStatus.CounterPartyRedeemed:
-    case OrderStatus.CounterPartyRedeemDetected:
+    case OrderStatus.AwaitingRefund:
+    case OrderStatus.Redeemed:
       return StatusLabel.Completed;
     default:
       return StatusLabel.Pending;
@@ -57,66 +55,84 @@ export const TransactionRow: FC<TransactionProps> = ({
   isLast,
   isFirst,
 }) => {
-  const { create_order, source_swap, destination_swap } = order;
-  const { assets } = assetInfoStore();
+  const { source_swap, destination_swap } = order;
+  const { allAssets } = assetInfoStore();
+  const { currentNetwork } = swapStore();
 
   const sendAsset = useMemo(
-    () => getAssetFromSwap(source_swap, assets),
-    [source_swap, assets]
+    () => getAssetFromSwap(source_swap, allAssets),
+    [source_swap, allAssets],
   );
   const receiveAsset = useMemo(
-    () => getAssetFromSwap(destination_swap, assets),
-    [destination_swap, assets]
+    () => getAssetFromSwap(destination_swap, allAssets),
+    [destination_swap, allAssets],
   );
   const statusLabel = useMemo(
     () => status && getOrderStatusLabel(status),
-    [status]
+    [status],
   );
   const sendAmount = useMemo(
-    () => formatAmount(create_order.source_amount, sendAsset?.decimals ?? 0),
-    [create_order.source_amount, sendAsset?.decimals]
+    () =>
+      sendAsset &&
+      formatAmount(
+        source_swap.amount,
+        sendAsset?.decimals ?? 0,
+        Math.min(sendAsset.decimals, 8),
+      ),
+    [source_swap.amount, sendAsset],
   );
   const receiveAmount = useMemo(
     () =>
+      receiveAsset &&
       formatAmount(
-        create_order.destination_amount,
-        receiveAsset?.decimals ?? 0
+        destination_swap.amount,
+        receiveAsset?.decimals ?? 0,
+        Math.min(receiveAsset.decimals, 8),
       ),
-    [create_order.destination_amount, receiveAsset?.decimals]
+    [destination_swap.amount, receiveAsset],
   );
   const dayDifference = useMemo(
-    () => getDayDifference(create_order.updated_at),
-    [create_order.updated_at]
+    () => getDayDifference(order.created_at),
+    [order.created_at],
   );
 
   const handleTransactionClick = () => {
-    if (order?.create_order?.create_id) {
-      window.open(
-        `https://testnet-explorer.garden.finance/order/${create_order.create_id}`,
-        "_blank"
-      );
+    if (order.order_id) {
+      const endpoint = getApiEndpoint(currentNetwork).explorer;
+      window.open(`${endpoint}/order/${order.order_id}`, '_blank');
     }
   };
 
   if (!sendAsset || !receiveAsset) return null;
 
   return (
-    <div
-      className={`flex flex-col gap-1 p-4 ${isFirst ? "rounded-t-2xl" : ""} ${
-        isLast ? "rounded-b-2xl" : ""
-      } ${"cursor-pointer hover:bg-gray-900"}`}
-      onClick={handleTransactionClick}
-    >
-      <div className={`flex flex-col gap-1 `}>
-        <SwapInfo
-          sendAsset={sendAsset}
-          receiveAsset={receiveAsset}
-          sendAmount={sendAmount}
-          receiveAmount={receiveAmount}
-        />
-        <div className="flex justify-between">
-          <p>{statusLabel}</p>
-          <p>{dayDifference}</p>
+    <div>
+      {!isFirst && <div className="h-px w-full bg-white/50"></div>}
+      <div
+        className={`flex flex-col gap-1 p-4 ${isLast ? 'rounded-b-2xl' : ''} ${
+          statusLabel !== StatusLabel.Expired
+            ? 'cursor-pointer hover:bg-white/50'
+            : ''
+        }`}
+        onClick={handleTransactionClick}
+      >
+        <div className={`flex flex-col gap-1`}>
+          {sendAmount && receiveAmount && (
+            <SwapInfo
+              sendAsset={sendAsset}
+              receiveAsset={receiveAsset}
+              sendAmount={sendAmount}
+              receiveAmount={receiveAmount}
+            />
+          )}
+          <div className="flex justify-between">
+            <Typography size="h5" weight="regular">
+              {statusLabel}
+            </Typography>
+            <Typography size="h5" weight="regular">
+              {dayDifference}
+            </Typography>
+          </div>
         </div>
       </div>
     </div>

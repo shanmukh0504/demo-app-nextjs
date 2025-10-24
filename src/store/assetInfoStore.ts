@@ -1,136 +1,142 @@
-import { create } from "zustand";
-import { Asset, Chain } from "@gardenfi/orderbook";
-import axios from "axios";
-import { IQuote, Strategies } from "@gardenfi/core";
+import { create } from 'zustand';
+import {
+  ChainsApiResponse,
+  ChainInfo,
+  AssetFromResponse,
+  ParsedChainInfo,
+  ParsedAsset,
+} from '@/types/types';
+import { Chain } from '@gardenfi/orderbook';
+import { getApiEndpoint } from '@/constants/constants';
+import { Network } from '@gardenfi/utils';
 
-const ASSETS_API_URL = `${process.env.NEXT_PUBLIC_DATA_URL}/assets`;
-
-export const generateTokenKey = (chain: Chain, asset: string) => {
-  return `${chain}_${asset.toLowerCase()}`;
-};
-
-export enum IOType {
-  input = "input",
-  output = "output",
-}
-
-export type Networks = {
-  [chain in Chain]: ChainData & { assetConfig: Omit<Asset, "chain">[] };
-};
-
-export type ChainData = {
-  chainId: number;
-  explorer: string;
-  networkLogo: string;
-  networkType: string;
-  name: string;
-  identifier: Chain;
-};
-
-export type Assets = Record<string, Asset>;
-export type Chains = Partial<Record<Chain, ChainData>>;
-
-type AssetInfoState = {
-  assets: Assets | null;
-  chains: Chains | null;
+type AssetStoreState = {
+  chains: ParsedChainInfo[];
+  allAssets: ParsedAsset[];
   isLoading: boolean;
-  isAssetSelectorOpen: {
-    isOpen: boolean;
-    type: IOType;
-  };
   error: string | null;
-  strategies: {
-    val: Strategies | null;
-    error: string | null;
-    isLoading: boolean;
-  };
-  setOpenAssetSelector: (type: IOType) => void;
-  CloseAssetSelector: () => void;
-  fetchAndSetAssetsAndChains: () => Promise<void>;
-  fetchAndSetStrategies: (quote: IQuote) => Promise<void>;
+  currentNetwork: Network;
+  fetchAssets: (network?: Network) => Promise<void>;
+  setCurrentNetwork: (network: Network) => void;
 };
 
-export const assetInfoStore = create<AssetInfoState>((set, get) => ({
-  assets: null,
-  chains: null,
-  isAssetSelectorOpen: {
-    isOpen: false,
-    type: IOType.input,
-  },
+// Helper function to parse chain info
+const parseChainInfo = (chainInfo: ChainInfo): ParsedChainInfo => {
+  const { chain, chainName } = parseChainName(chainInfo.chain);
+
+  return {
+    chainName,
+    chain: chain,
+    chainId: chainInfo.id,
+    iconUrl: chainInfo.icon,
+    explorerUrl: chainInfo.explorer_url,
+    confirmationTarget: chainInfo.confirmation_target,
+    sourceTimelock: parseInt(chainInfo.source_timelock),
+    destinationTimelock: parseInt(chainInfo.destination_timelock),
+    supportedHtlcSchemas: chainInfo.supported_htlc_schemas,
+    supportedTokenSchemas: chainInfo.supported_token_schemas,
+    assets: chainInfo.assets.map((asset) => parseAsset(asset, chainInfo)),
+  };
+};
+
+const parseAsset = (
+  asset: AssetFromResponse,
+  parent: ChainInfo,
+): ParsedAsset => {
+  const { chain } = parseChainName(parent.chain);
+  const { symbol, name } = parseAssetId(asset.id);
+
+  return {
+    name: name,
+    symbol: symbol,
+    chain: chain,
+    decimals: asset.decimals,
+    tokenAddress: asset.token?.address || '',
+    atomicSwapAddress: asset.htlc?.address || '',
+    logo: asset.icon,
+    price: asset.price,
+    min_amount: asset.min_amount,
+    max_amount: asset.max_amount,
+  };
+};
+
+const parseChainName = (
+  chainId: string,
+): { chain: Chain; chainName: string } => {
+  return {
+    chain: chainId.split(':')[0] as Chain,
+    chainName: chainId
+      .replace(/[_-]/g, ' ')
+      .replace(/\b\w/g, (l) => l.toUpperCase()),
+  };
+};
+
+const SYMBOL_NAME_MAP: Record<string, string> = {
+  wbtc: 'Wrapped Bitcoin',
+  sol: 'Solana',
+  usdc: 'USD Coin',
+  usdt: 'Tether USD',
+  btc: 'Bitcoin',
+  cbbtc: 'Coinbase Wrapped Bitcoin',
+  wcbtc: 'Wrapped Citrea Bitcoin',
+};
+
+const parseAssetId = (assetId: string): { symbol: string; name: string } => {
+  const parts = assetId.split(':');
+  let symbol: string;
+  if (parts.length < 2) {
+    symbol = assetId.toUpperCase();
+  } else {
+    symbol = parts[parts.length - 1].toUpperCase();
+  }
+  // Lookup in map (case-insensitive)
+  const name = SYMBOL_NAME_MAP[symbol.toLowerCase()] ?? symbol;
+  return { symbol, name };
+};
+
+export const assetInfoStore = create<AssetStoreState>((set, get) => ({
+  chains: [],
+  allAssets: [],
   isLoading: false,
   error: null,
-  strategies: {
-    val: null,
-    error: null,
-    isLoading: false,
-  },
+  currentNetwork: Network.TESTNET,
 
-  setOpenAssetSelector: (type) =>
-    set({
-      isAssetSelectorOpen: {
-        isOpen: true,
-        type,
-      },
-    }),
-
-  CloseAssetSelector: () =>
-    set({
-      isAssetSelectorOpen: {
-        type: get().isAssetSelectorOpen.type,
-        isOpen: false,
-      },
-    }),
-
-  fetchAndSetAssetsAndChains: async () => {
+  fetchAssets: async (network?: Network) => {
+    const targetNetwork = network || get().currentNetwork;
+    set({ isLoading: true, error: null });
     try {
-      set({ isLoading: true });
-
-      const res = await axios.get<Networks>(ASSETS_API_URL);
-
-      const assetsData = res.data;
-
-      const assets: Assets = {};
-      const chains: Chains = {};
-
-      for (const chainInfo of Object.values(assetsData)) {
-        chains[chainInfo.identifier] = {
-          chainId: chainInfo.chainId,
-          explorer: chainInfo.explorer,
-          networkLogo: chainInfo.networkLogo,
-          networkType: chainInfo.networkType,
-          name: chainInfo.name,
-          identifier: chainInfo.identifier,
-        };
-        for (const asset of chainInfo.assetConfig) {
-          assets[
-            generateTokenKey(chainInfo.identifier, asset.atomicSwapAddress)
-          ] = {
-            ...asset,
-            chain: chainInfo.identifier,
-          };
-        }
+      const response = await fetch(
+        `${getApiEndpoint(targetNetwork).api}/v2/chains`,
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
-      set({ assets, chains });
-    } catch {
-      set({ error: "Failed to fetch assets data" });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-  fetchAndSetStrategies: async (quote) => {
-    try {
-      set({ strategies: { ...get().strategies, isLoading: true } });
-      const res = await quote.getStrategies();
-      if (res.error) return;
-      set({ strategies: { val: res.val, isLoading: false, error: null } });
-    } catch {
+
+      const data: ChainsApiResponse = await response.json();
+
+      if (data.status !== 'Ok') {
+        throw new Error('API returned error status');
+      }
+
+      const parsedChains = data.result.map(parseChainInfo);
+      const allAssets = parsedChains.flatMap((chain) => chain.assets);
+
       set({
-        strategies: {
-          ...get().strategies,
-          error: "Failed to fetch strategies",
-          isLoading: false,
-        },
+        chains: parsedChains,
+        allAssets,
+        isLoading: false,
+        error: null,
+        currentNetwork: targetNetwork,
+      });
+    } catch (error: any) {
+      set({
+        error: error?.message ?? 'Failed to load assets',
+        isLoading: false,
       });
     }
+  },
+
+  setCurrentNetwork: (network: Network) => {
+    set({ currentNetwork: network });
   },
 }));

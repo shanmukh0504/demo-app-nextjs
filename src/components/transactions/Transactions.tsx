@@ -1,119 +1,87 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { useGarden } from "@gardenfi/react-hooks";
-import { ordersStore } from "@/store/ordersStore";
-import { blockNumberStore } from "@/store/blockNumberStore";
-import { BlockchainType, MatchedOrder } from "@gardenfi/orderbook";
-import { ParseOrderStatus, toXOnly } from "@gardenfi/core";
-import { TransactionRow } from "./TransactionRow";
-import { assetInfoStore } from "@/store/assetInfoStore";
-import { with0x } from "@gardenfi/utils";
-import { useAccount } from "wagmi";
+import React, { useMemo, useEffect, useState } from 'react';
+import { assetInfoStore } from '@/store/assetInfoStore';
+import transactionHistoryStore from '@/store/transactionHistoryStore';
+import { useGarden } from '@gardenfi/react-hooks';
+import { BlockchainType } from '@gardenfi/orderbook';
+import { TransactionRow } from './TransactionRow';
 
-const Transaction: React.FC = () => {
+const Transactions = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
-  const { orderBook } = useGarden();
-  const { address: evmAddress } = useAccount();
-  const { orders, fetchAndSetOrders, totalItems, loadMore } = ordersStore().ordersHistory;
-  const { fetchAndSetBlockNumbers, blockNumbers } = blockNumberStore();
-  const { fetchAndSetAssetsAndChains } = assetInfoStore();
-  const { garden } = useGarden();
   const [connectedWallets, setConnectedWallets] = useState<
     Record<BlockchainType, string>
   >({
-    Bitcoin: "",
-    EVM: "",
-    Starknet: "",
+    bitcoin: '',
+    evm: '',
+    starknet: '',
+    solana: '',
+    sui: '',
   });
 
+  const { transactions, isLoading, loadMore, totalItems } = transactionHistoryStore();
+  const { fetchAssets } = assetInfoStore();
+  const { garden } = useGarden();
+
   const showLoadMore = useMemo(
-    () => orders.length < totalItems,
-    [orders.length, totalItems]
+    () => transactions.length < totalItems,
+    [transactions.length, totalItems]
   );
 
+  // Handle load more functionality
   const handleLoadMore = async () => {
-    if (!orderBook) return;
+    if (!garden) return;
     setIsLoadingMore(true);
-    await loadMore(orderBook, connectedWallets).finally(() => {
+    try {
+      await loadMore(garden, connectedWallets);
+    } finally {
       setIsLoadingMore(false);
-    });
+    }
   };
 
-  const parseStatus = (order: MatchedOrder) => {
-    if (!blockNumbers) return;
-    const { source_swap, destination_swap } = order;
-    const sourceBlockNumber = blockNumbers[source_swap.chain];
-    const destinationBlockNumber = blockNumbers[destination_swap.chain];
-    if (!sourceBlockNumber || !destinationBlockNumber) return;
-
-    return ParseOrderStatus(order, sourceBlockNumber, destinationBlockNumber);
-  };
+  // Initialize assets and wallets on component mount
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
 
   useEffect(() => {
-    fetchAndSetAssetsAndChains();
-  }, [fetchAndSetAssetsAndChains]);
+    if (!garden) return;
 
-  useEffect(() => {
-    if (!orderBook) return;
-
-    let isFetching = false;
-
-    const fetchOrdersAndBlockNumbers = async () => {
-      if (isFetching || !evmAddress) return;
-
-      try {
-        isFetching = true;
-        await fetchAndSetBlockNumbers();
-        if (garden) {
-          garden.btcWallet?.getPublicKey().then((publicKey) => {
-            setConnectedWallets({
-              Bitcoin: toXOnly(publicKey),
-              EVM: with0x(evmAddress ?? ""),
-              Starknet: "",
-            });
-            fetchAndSetOrders(orderBook, {
-              Bitcoin: toXOnly(publicKey),
-              EVM: with0x(evmAddress ?? ""),
-              Starknet: "",
-            })
-          });
-        }
-      } finally {
-        isFetching = false;
-      }
+    const wallets: Record<BlockchainType, string> = {
+      bitcoin: garden?.htlcs?.bitcoin?.htlcActorAddress || '',
+      evm: garden?.htlcs.evm?.htlcActorAddress || '',
+      starknet: garden?.htlcs?.starknet?.htlcActorAddress || '',
+      solana: garden?.htlcs?.solana?.htlcActorAddress || '',
+      sui: garden?.htlcs?.sui?.htlcActorAddress || '',
     };
 
-    setIsLoadingOrders(true);
-    fetchOrdersAndBlockNumbers().then(() => setIsLoadingOrders(false));
-    const intervalId = setInterval(fetchOrdersAndBlockNumbers, 10000);
-
-    return () => clearInterval(intervalId);
-  }, [orderBook, garden, fetchAndSetOrders, fetchAndSetBlockNumbers, evmAddress]);
+    setConnectedWallets(wallets);
+  }, [garden]);
 
   return (
     <div className="flex flex-col justify-center gap-5 overflow-hidden h-full min-h-[inherit] max-h-[75vh] p-8 bg-gray-800 rounded-2xl text-white">
       <h1 className="text-xl font-bold">Transaction History</h1>
       <div className="flex flex-col overflow-y-auto h-full max-h-[inherit] scrollbar-hide bg-gray-700 rounded-2xl">
-        {isLoadingOrders ? (
+        {isLoading ? (
           <div className="p-6 text-center">Loading...</div>
-        ) : orders.length === 0 ? (
+        ) : transactions.length === 0 ? (
           <div className="p-6 text-center">No transactions found.</div>
         ) : (
-          orders.map((order, index) => (
-            <div key={index} className="w-full">
-              <TransactionRow
-                order={order}
-                status={parseStatus(order)}
-                isLast={index === orders.length - 1}
-                isFirst={index === 0}
-              />
-              {index !== orders.length - 1 ? (
-                <div className="bg-gray-900 w-full h-px"></div>
-              ) : null}
-            </div>
-          ))
+          transactions.map((order, index) => {
+            return (
+              <div key={order.order_id || index} className="w-full">
+                <TransactionRow
+                  order={order}
+                  status={order.status}
+                  isLast={index === transactions.length - 1}
+                  isFirst={index === 0}
+                />
+                {index !== transactions.length - 1 ? (
+                  <div className="bg-gray-900 w-full h-px"></div>
+                ) : null}
+              </div>
+            );
+          })
         )}
       </div>
       {showLoadMore && (
@@ -131,4 +99,4 @@ const Transaction: React.FC = () => {
   );
 };
 
-export default Transaction;
+export default Transactions;

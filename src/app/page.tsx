@@ -5,8 +5,8 @@ import dynamic from "next/dynamic";
 const TokenSwap = dynamic(() => import("@/components/swap/TokenSwap"), {
   ssr: false,
 });
-const Transactions = dynamic(
-  () => import("@/components/transactions/Transactions"),
+const TransactionHistory = dynamic(
+  () => import("@/components/transactions/TransactionHistory"),
   {
     ssr: false,
   }
@@ -20,7 +20,7 @@ const Home = () => {
           <TokenSwap />
         </div>
         <div className="h-full min-h-inherit">
-          <Transactions />
+          <TransactionHistory />
         </div>
       </div>
     </div>

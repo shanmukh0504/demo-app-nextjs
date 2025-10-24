@@ -1,58 +1,117 @@
-import { create } from "zustand";
-import { SupportedAssets } from "@gardenfi/orderbook";
-import { SwapParams } from "@gardenfi/core";
+import { create } from 'zustand';
+import {
+  IOType,
+  ErrorFormat,
+  Errors,
+  DEFAULT_NETWORK,
+} from '../constants/constants';
+import { Chains } from '@gardenfi/orderbook';
+import { Network } from '@gardenfi/utils';
+import { ParsedAsset } from '../types/types';
 
-interface SwapState {
-  swapParams: SwapParams;
+
+export type SwapErrors = {
+  inputError?: ErrorFormat;
+  outputError?: ErrorFormat;
+  liquidityError?: ErrorFormat;
+  insufficientBalanceError?: ErrorFormat;
+};
+
+type SwapState = {
+  inputAsset?: ParsedAsset;
+  outputAsset?: ParsedAsset;
   inputAmount: string;
+  outputAmount: string;
   btcAddress: string;
-  errorMessage: string | null;
-  loading: boolean;
-  isBtcToWbtc: boolean;
-  setSwapParams: (params: Partial<SwapState["swapParams"]>) => void;
-  setInputAmount: (amount: string) => void;
-  setBtcAddress: (address: string) => void;
-  setErrorMessage: (message: string | null) => void;
-  setLoading: (loading: boolean) => void;
-  toggleSwapDirection: () => void;
-}
+  isSwapping: boolean;
+  error: SwapErrors;
+  currentNetwork: Network;
+  setAsset: (ioType: IOType, asset: ParsedAsset | undefined) => void;
+  setAmount: (ioType: IOType, amount: string) => void;
+  setBtcAddress: (btcAddress: string) => void;
+  swapAssets: () => void;
+  setError: (error: SwapErrors) => void;
+  setIsSwapping: (isSwapping: boolean) => void;
+};
+
+export const BTC = {
+  name: 'Bitcoin',
+  decimals: 8,
+  symbol: 'BTC',
+  logo: 'https://garden.imgix.net/token-images/bitcoin.svg',
+  tokenAddress: 'primary',
+  atomicSwapAddress: 'primary',
+  chain:
+    DEFAULT_NETWORK === Network.TESTNET
+      ? Chains.bitcoin_testnet
+      : Chains.bitcoin,
+  price: 115767.9,
+  min_amount: '50000',
+  max_amount: '10000000000',
+};
 
 export const swapStore = create<SwapState>((set) => ({
-  swapParams: {
-    fromAsset: SupportedAssets.testnet.ethereum_sepolia_WBTC,
-    toAsset: SupportedAssets.testnet.bitcoin_testnet_BTC,
-    sendAmount: "0",
-    receiveAmount: "0",
-    additionalData: { strategyId: "" },
+  inputAsset: BTC,
+  inputAmount: '',
+  outputAmount: '',
+  btcAddress: '',
+  isSwapping: false,
+  error: {
+    inputError: Errors.none,
+    outputError: Errors.none,
+    liquidityError: Errors.none,
+    insufficientBalanceError: Errors.none,
   },
-  inputAmount: "",
-  btcAddress: "",
-  errorMessage: null,
-  loading: false,
-  isBtcToWbtc: false,
-  setSwapParams: (params) =>
+  currentNetwork: DEFAULT_NETWORK,
+  setAsset: (ioType, asset) => {
     set((state) => ({
-      swapParams: { ...state.swapParams, ...params },
-    })),
-  setInputAmount: (amount) => set({ inputAmount: amount }),
-  setBtcAddress: (address) => set({ btcAddress: address }),
-  setErrorMessage: (message) => set({ errorMessage: message }),
-  setLoading: (loading) => set({ loading }),
-  toggleSwapDirection: () =>
+      ...state,
+      [ioType === IOType.input ? 'inputAsset' : 'outputAsset']: asset,
+    }));
+  },
+  setAmount: (ioType, amount) => {
     set((state) => ({
-      isBtcToWbtc: !state.isBtcToWbtc,
-      inputAmount: "",
-      btcAddress: "",
-      swapParams: {
-        fromAsset: state.isBtcToWbtc
-          ? SupportedAssets.testnet.ethereum_sepolia_WBTC
-          : SupportedAssets.testnet.bitcoin_testnet_BTC,
-        toAsset: state.isBtcToWbtc
-          ? SupportedAssets.testnet.bitcoin_testnet_BTC
-          : SupportedAssets.testnet.ethereum_sepolia_WBTC,
-        sendAmount: "0",
-        receiveAmount: "0",
-        additionalData: { strategyId: "" },
-      },
-    })),
+      ...state,
+      [ioType === IOType.input ? 'inputAmount' : 'outputAmount']: amount,
+    }));
+  },
+  setBtcAddress: (btcAddress) => {
+    set((state) => ({
+      ...state,
+      btcAddress,
+    }));
+  },
+  swapAssets: () => {
+    set((state) => {
+      const newInputAmount =
+        !state.outputAmount || state.outputAmount === '0'
+          ? ''
+          : state.outputAmount;
+
+      const newOutputAmount =
+        !state.inputAmount || state.inputAmount === '0'
+          ? ''
+          : state.outputAmount;
+      return {
+        ...state,
+        inputAsset: state.outputAsset,
+        outputAsset: state.inputAsset,
+        inputAmount: newInputAmount,
+        outputAmount: newOutputAmount,
+        error: {
+          ...state.error,
+          inputError: Errors.none,
+          outputError: Errors.none,
+          liquidityError: Errors.none,
+          insufficientBalanceError: Errors.none,
+        },
+      };
+    });
+  },
+  setIsSwapping: (isSwapping) => {
+    set({ isSwapping });
+  },
+  setError: (error) => {
+    set((state) => ({ error: { ...state.error, ...error } }));
+  },
 }));
